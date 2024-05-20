@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <body>
+      <html lang="en">
+        <head>
+          <script src="https://unpkg.com/konva@9.3.1/konva.min.js"></script>
+          <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+          <meta charset="UTF-8" />
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+          />
+          <title>GMEStop Headbands</title>
+
+          <style>
+            @font-face {
+              font-family: "Impact, sans-serif";
+              src: url("https://static.wixstatic.com/ufonts/07832f_3c3df5a844bc466c8825aa1992c99829/woff2/file.woff2")
+                format("woff2");
+              font-weight: normal;
+              font-style: normal;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              overflow: hidden;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-direction: column; /* NEW ADD */
+              background-color: #000;
+              min-height: 80vh;
+              font-family: Impact, sans-serif; /* Use your custom font here */
+            }
+
+            /* #container-wrapper {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            } */
+
+            #container-wrapper {
+              position: relative;
+            }
+
+            #canvas-container {
+              position: relative;
+              background-color: transparent;
+              /* margin: auto; */ /* NEW ADD */
+            }
+
+            #uploadButton,
+            #saveButton {
+              letter-spacing: 2px;
+              font-family: Impact, sans-serif; /* Use your custom font here */
+              margin: 10px;
+              cursor: pointer;
+              color: #ffff;
+              background-color: #fe0000;
+              font-size: 18px;
+              border: 3px solid #fff;
+              padding: 8px;
+              border-radius: 0;
+              transition: background-color 0.3s ease-in-out;
+            }
+
+            #uploadButton:hover,
+            #saveButton:hover {
+              background-color: #ff4040;
+              color: white;
+            }
+
+            #saveButton {
+              display: none; /* Initially hide the save button */
+            }
+
+            #closeButton {
+              /* NEW ADD */
+              opacity: 0.5;
+              cursor: pointer;
+              font-size: 18px;
+              border: 2px solid #fff;
+              border-radius: 50%;
+              transition: background-color 0.3s ease-in-out,
+                color 0.3s ease-in-out;
+              position: absolute;
+              top: 10px;
+              right: 10px;
+              color: #ffff;
+              background-color: #fe0000;
+              width: 40px; /* Set width and height to make it circular */
+              height: 40px;
+              text-align: center;
+            }
+
+            #closeButton:hover {
+              /* NEW ADD */
+              background-color: #ff4040;
+              opacity: 1;
+              color: white;
+            }
+
+            @media screen and (max-width: 768px) {
+              #container-wrapper {
+                width: 100%; /* Full width of its parent */
+              }
+              #canvas-container {
+                width: 100%; /* Take full width to utilize the space */
+                max-width: 300px; /* But don't grow beyond 300px */
+                max-height: 300px; /* Same for height */
+                margin: auto; /* Center horizontally */
+                overflow: hidden; /* Hide overflow */
+                display: flex; /* Use flexbox to center content */
+                justify-content: center; /* Center horizontally */
+                align-items: center; /* Center vertically */
+              }
+              .konvajs-content {
+                width: 100%; /* Let it fill the container */
+                max-width: 250px; /* But don't exceed 250px */
+                height: auto; /* Adjust height automatically */
+                position: relative;
+                user-select: none;
+              }
+              .konvajs-content canvas {
+                width: 100% !important; /* Override inline styles for responsiveness */
+                height: auto !important; /* Maintain aspect ratio */
+                max-width: 250px; /* Respect the max-width of .konvajs-content */
+                position: absolute;
+                top: 0;
+                left: 0;
+              }
+            }
+            #gme-title {
+              font-size: 50px;
+              margin: 0;
+            }
+            #gme-sbuheading {
+              font-size: 30px;
+              margin: 0;
+              margin-bottom: 20px;
+            }
+            #red-header {
+              color: #fe0000;
+            }
+          </style>
+        </head>
+
+        <body>
+          <div style="text-align: center">
+            <img src="./logo.png" alt="GMEStop" />
+            <h1 style="color: #fff" id="gme-title">
+              <span id="red-header">Avatar</span>
+            </h1>
+            <h2 style="color: #fff" id="gme-sbuheading">
+              Upload your profile picture
+            </h2>
+          </div>
+          <div id="container-wrapper">
+            <div id="canvas-container">
+              <div id="canvas-border"></div>
+            </div>
+            <div
+              style="display: flex; flex-direction: column; align-items: center"
+            >
+              <button id="uploadButton">Upload Profile Picture</button>
+              <button id="saveButton">Save Image</button>
+            </div>
+            <button id="closeButton">&#10006;</button>
+          </div>
+
+          <script>
+            let fixedCanvasWidth, maxCanvasHeight;
+
+            if (window.innerWidth <= 768) {
+              // 768px is a common breakpoint for mobile devices
+              fixedCanvasWidth = 250;
+              maxCanvasHeight = 250;
+            } else {
+              fixedCanvasWidth = 450;
+              maxCanvasHeight = 450;
+            }
+
+            const stage = new Konva.Stage({
+              container: "canvas-container",
+              width: fixedCanvasWidth,
+              height: maxCanvasHeight,
+            });
+
+            const layer = new Konva.Layer();
+            stage.add(layer);
+
+            let mustache;
+            let canvasBorder;
+            let tr;
+
+            const addMustacheToCanvas = () => {
+              const mustacheImageSrc =
+                "https://static.wixstatic.com/media/07832f_fa09c6a6da334c28a25ccc2ede4ad79e~mv2.png";
+
+              canvasBorder = new Konva.Rect({
+                width: stage.width(),
+                height: stage.height(),
+                stroke: "white",
+                strokeWidth: 5,
+              });
+
+              layer.add(canvasBorder);
+
+              Konva.Image.fromURL(mustacheImageSrc, (img) => {
+                mustache = img;
+                const aspectRatio = img.width() / img.height();
+
+                let newMustacheWidth, newMustacheHeight;
+
+                if (window.innerWidth <= 768) {
+                  // Mobile devices
+                  newMustacheWidth = 100;
+                  newMustacheHeight = 100 / aspectRatio;
+                } else {
+                  // Desktop
+                  newMustacheWidth = 250;
+                  newMustacheHeight = 250 / aspectRatio;
+                }
+
+                if (newMustacheHeight > maxCanvasHeight) {
+                  newMustacheHeight = maxCanvasHeight;
+                  newMustacheWidth = maxCanvasHeight * aspectRatio;
+                }
+
+                mustache.setAttrs({
+                  width: newMustacheWidth,
+                  height: newMustacheHeight,
+                  x: (stage.width() - newMustacheWidth) / 2,
+                  y: (stage.height() - newMustacheHeight) / 2,
+                  name: "mustache",
+                  draggable: true,
+                });
+
+                tr = new Konva.Transformer({
+                  nodes: [mustache],
+                  enabledAnchors: [
+                    "top-left",
+                    "top-right",
+                    "bottom-left",
+                    "bottom-right",
+                  ],
+                  keepRatio: true,
+                  boundBoxFunc: (oldBox, newBox) => {
+                    if (
+                      Math.abs(newBox.width) < 10 ||
+                      Math.abs(newBox.height) < 10
+                    ) {
+                      return oldBox;
+                    }
+                    return newBox;
+                  },
+
+                  padding: 10,
+                  rotateEnabled: true /* NEW ADD */,
+                });
+
+                mustache.on("click tap", () => {
+                  if (window.innerWidth <= 768) {
+                    // Mobile devices
+                    tr.visible(!tr.visible());
+                    layer.batchDraw();
+                  } else {
+                    // Desktop
+                    tr.visible(!tr.visible());
+                    layer.batchDraw();
+                  }
+                });
+
+                layer.add(canvasBorder);
+                layer.add(mustache);
+                layer.add(tr);
+                tr.visible(false);
+
+                // $("#saveButton").show();
+
+                layer.batchDraw();
+              });
+            };
+
+            const changeCanvasBackground = (imageSrc) => {
+              const background = new Image();
+              background.onload = function () {
+                const aspectRatio = background.width / background.height;
+
+                let newCanvasWidth = fixedCanvasWidth;
+                let newCanvasHeight = fixedCanvasWidth / aspectRatio;
+
+                if (newCanvasHeight > maxCanvasHeight) {
+                  newCanvasHeight = maxCanvasHeight;
+                  newCanvasWidth = maxCanvasHeight * aspectRatio;
+                }
+
+                stage.width(newCanvasWidth);
+                stage.height(newCanvasHeight);
+
+                canvasBorder.width(newCanvasWidth);
+                canvasBorder.height(newCanvasHeight);
+
+                const bg = new Konva.Image({
+                  image: background,
+                  width: newCanvasWidth,
+                  height: newCanvasHeight,
+                });
+
+                layer.destroyChildren();
+                layer.add(bg);
+                addMustacheToCanvas();
+                layer.batchDraw();
+                $("#uploadButton").hide();
+                $("#closeButton").show();
+                $("#saveButton").show();
+              };
+              background.src = imageSrc;
+            };
+
+            const saveCanvasAsImage = () => {
+              tr.visible(false);
+              layer.batchDraw();
+
+              const dataURL = stage.toDataURL({
+                mimeType: "image/png",
+                quality: 1,
+                pixelRatio: 3,
+              });
+              const a = document.createElement("a");
+              a.href = dataURL;
+              a.download = "Hold_GME_on_SOL_to_5_Billy.png";
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+
+              tr.visible(true);
+              layer.batchDraw();
+            };
+
+            const resetCanvas = () => {
+              $("#uploadButton").show();
+              addMustacheToCanvas();
+              $("#closeButton").hide();
+              $("#saveButton").hide();
+              layer.destroyChildren();
+              stage.width(fixedCanvasWidth);
+              stage.height(maxCanvasHeight);
+              canvasBorder = new Konva.Rect({
+                width: stage.width(),
+                height: stage.height(),
+                stroke: "white",
+                strokeWidth: 5,
+              });
+              layer.add(canvasBorder);
+              layer.batchDraw();
+            };
+
+            $(document).ready(function () {
+              $("#closeButton").hide();
+              $("#saveButton").hide();
+              addMustacheToCanvas();
+            });
+
+            $("#uploadButton").click(function () {
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = "image/*";
+
+              input.addEventListener("change", (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onload = function (event) {
+                    const imageSrc = event.target.result;
+                    changeCanvasBackground(imageSrc);
+                  };
+                  reader.readAsDataURL(file);
+                }
+              });
+
+              input.click();
+            });
+
+            $("#saveButton").click(function () {
+              saveCanvasAsImage();
+            });
+
+            $("#closeButton").click(function () {
+              resetCanvas();
+            });
+
+            // $("#saveButton").hide(); /* NEW ADD */
+
+            // addMustacheToCanvas(); /* NEW ADD */
+          </script>
+        </body>
+      </html>
+    </body>
+  </head>
+</html>
